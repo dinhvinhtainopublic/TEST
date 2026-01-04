@@ -5,10 +5,12 @@
 FROM linuxserver/webtop:latest
 USER root
 
-# Cài đặt ngrok
+# Cài đặt các công cụ và ngrok từ GitHub (Tránh lỗi gzip)
 RUN apk update && \
     apk add --no-cache curl wget netcat-openbsd bash tar && \
-    curl -s https://bin.equinox.io/c/bPR9B2h3Y6h/ngrok-v3-stable-linux-amd64.tgz | tar xz -C /usr/local/bin
+    wget -q https://bin.equinox.io/c/bPR9B2h3Y6h/ngrok-v3-stable-linux-amd64.tgz -O ngrok.tgz && \
+    tar -xzf ngrok.tgz -C /usr/local/bin && \
+    rm ngrok.tgz
 
 ENV PUID=1000
 ENV PGID=1000
@@ -24,9 +26,13 @@ echo '🖥️  WEBTOP ĐANG KHỞI ĐỘNG...'; \
 echo '🌐 ĐANG KẾT NỐI NGROK...'; \
 ngrok config add-authtoken ${NGROK_AUTHTOKEN}; \
 \
-# Chạy ngrok và bắt nó in log trực tiếp ra màn hình \
-echo '👇 XEM LINK TRUY CẬP DƯỚI ĐÂY (Tìm dòng url=https://...):'; \
+# Chạy ngrok và in log ra màn hình \
+echo '------------------------------------------'; \
+echo '👇 LINK TRUY CẬP SẼ XUẤT HIỆN DƯỚI ĐÂY:'; \
 ngrok http 3000 --log stdout & \
 \
-# Giữ Railway sống \
+# Đợi 5 giây để ngrok kết nối rồi in thêm một dòng ngăn cách cho dễ nhìn \
+sleep 5; \
+echo '------------------------------------------'; \
+\
 while true; do echo OK | nc -l -p 8080; done"]
