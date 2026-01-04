@@ -1,43 +1,39 @@
 # ==========================================
-#     🚀 WEBTOP + NGROK TUNNEL
-#           ✨ VPS ON RAILWAY ✨
+#   🚀 WEBTOP + NGROK HTTP (PAID)
+#   ✅ REMOTE QUA BROWSER 100%
 # ==========================================
 FROM linuxserver/webtop:latest
+
 USER root
 
-# Cài tool cần thiết + ngrok
+# Install ngrok
 RUN apk update && \
-    apk add --no-cache curl wget bash netcat-openbsd jq && \
-    wget -O /usr/local/bin/ngrok https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz && \
-    tar -xzf /usr/local/bin/ngrok -C /usr/local/bin && \
-    chmod +x /usr/local/bin/ngrok
+    apk add --no-cache curl tar bash netcat-openbsd && \
+    wget -qO- https://bin.equinox.io/c/bNyj1mQVY4c/ngrok-v3-stable-linux-amd64.tgz \
+    | tar xz -C /usr/local/bin
 
-# Env Webtop
+# Env
 ENV PUID=1000
 ENV PGID=1000
 ENV TZ=Asia/Ho_Chi_Minh
 
-# Port
 EXPOSE 3000
 EXPOSE 8080
 
-# Start Webtop + ngrok
-CMD ["bash","-c","\
-echo ''; \
-echo '🖥️  WEBTOP ĐANG KHỞI ĐỘNG...'; \
-/init & sleep 6; \
-echo ''; \
-echo '🔐 ĐĂNG KÝ NGROK TOKEN...'; \
-ngrok config add-authtoken \"$NGROK_AUTHTOKEN\"; \
-echo ''; \
-echo '🌐 TẠO NGROK TUNNEL...'; \
-ngrok http 3000 --log=stdout > /tmp/ngrok.log & \
-sleep 8; \
-LINK=$(grep -o 'https://[^ ]*ngrok[^ ]*' /tmp/ngrok.log | head -n1); \
-echo ''; \
-echo '=========================================='; \
-echo '🔗  LINK TRUY CẬP VNC / WEBTOP:'; \
-echo \"👉  $LINK\"; \
-echo '=========================================='; \
-echo ''; \
-while true; do echo OK | nc -l -p 8080; done"]
+# s6 service for ngrok
+RUN mkdir -p /etc/services.d/ngrok
+
+RUN printf '#!/usr/bin/execlineb -P\n\
+with-contenv\n\
+ngrok config add-authtoken ${NGROK_AUTHTOKEN}\n\
+ngrok http 3000 --region ap\n' \
+> /etc/services.d/ngrok/run && chmod +x /etc/services.d/ngrok/run
+
+# Keep-alive service
+RUN mkdir -p /etc/services.d/keepalive
+RUN printf '#!/bin/sh\n\
+while true; do echo OK | nc -l -p 8080; done\n' \
+> /etc/services.d/keepalive/run && chmod +x /etc/services.d/keepalive/run
+
+# START (PHẢI là /init)
+CMD ["/init"]
