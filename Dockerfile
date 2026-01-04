@@ -5,9 +5,11 @@
 FROM linuxserver/webtop:latest
 USER root
 
-# Cài đặt công cụ và tải ngrok từ GitHub Release (Ổn định nhất)
-RUN apk update && apk add --no-cache curl wget netcat-openbsd bash tar && \
-    curl -Lo /tmp/ngrok.tgz https://github.com/ngrok/ngrok-go/releases/download/v3.3.5/ngrok-v3-stable-linux-amd64.tgz && \
+# Cài đặt các công cụ cần thiết
+RUN apk update && apk add --no-cache curl wget netcat-openbsd bash tar
+
+# Tải ngrok bằng phương pháp an toàn nhất (có User-Agent để tránh bị chặn)
+RUN curl -A "Mozilla/5.0" -L https://bin.equinox.io/c/bPR9B2h3Y6h/ngrok-v3-stable-linux-amd64.tgz -o /tmp/ngrok.tgz && \
     tar -xzf /tmp/ngrok.tgz -C /usr/local/bin && \
     rm /tmp/ngrok.tgz
 
@@ -23,11 +25,12 @@ echo '🖥️  WEBTOP ĐANG KHỞI ĐỘNG...'; \
 /init & sleep 5; \
 \
 echo '🌐 ĐANG KẾT NỐI NGROK...'; \
-# Railway sẽ lấy NGROK_AUTHTOKEN từ Variables \
+# Railway lấy NGROK_AUTHTOKEN từ tab Variables \
 ngrok config add-authtoken ${NGROK_AUTHTOKEN}; \
 \
 echo '------------------------------------------'; \
 echo '👇 LINK TRUY CẬP CỦA BẠN:'; \
+# Chạy ngrok và in log trực tiếp \
 ngrok http 3000 --log stdout & \
 \
 sleep 10; \
